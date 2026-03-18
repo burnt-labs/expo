@@ -33,7 +33,7 @@
   "dependencies": {
     "@expo/schema-utils": "^55.0.2",
     "resolve-from": "^5.0.0",
-    "semver": "^7.6.0"
+    "semver": "^7.7.4"
   },
   "devDependencies": {
     "expo-module-scripts": "^55.0.2"

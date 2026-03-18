@@ -37,11 +37,11 @@
     "jimp-compact": "0.16.1",
     "parse-png": "^2.1.0",
     "resolve-from": "^5.0.0",
-    "semver": "^7.6.0"
+    "semver": "^7.7.4"
   },
   "devDependencies": {
     "@types/getenv": "^1.0.0",
-    "@types/semver": "^7.0.0",
+    "@types/semver": "^7.7.1",
     "expo-module-scripts": "^55.0.2",
     "sharp-cli": "^5.2.0"
   },
