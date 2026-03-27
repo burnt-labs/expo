@@ -8,8 +8,13 @@ import com.google.android.gms.tasks.Task
 import com.google.android.play.core.integrity.StandardIntegrityManager.StandardIntegrityToken
 import com.google.android.play.core.integrity.StandardIntegrityManager.StandardIntegrityTokenRequest
 import com.google.android.play.core.integrity.IntegrityManagerFactory
+import com.google.android.play.core.integrity.IntegrityManager
+import com.google.android.play.core.integrity.IntegrityTokenRequest
+import com.google.android.play.core.integrity.IntegrityTokenResponse
+import com.google.android.play.core.integrity.IntegrityServiceException
 import com.google.android.play.core.integrity.StandardIntegrityManager
 import com.google.android.play.core.integrity.model.StandardIntegrityErrorCode
+import com.google.android.play.core.integrity.model.IntegrityErrorCode
 import com.google.android.play.core.integrity.StandardIntegrityException
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
@@ -27,6 +32,7 @@ class IntegrityModule : Module() {
   companion object {
     private const val PREPARE_INTEGRITY_TOKEN_PROVIDER_METHOD_NAME = "prepareIntegrityTokenProviderAsync"
     private const val REQUEST_INTEGRITY_CHECK_METHOD_NAME = "requestIntegrityCheckAsync"
+    private const val REQUEST_INTEGRITY_TOKEN_METHOD_NAME = "requestIntegrityTokenAsync"
     private const val ANDROID_KEYSTORE = "AndroidKeyStore"
   }
 
@@ -95,6 +101,24 @@ class IntegrityModule : Module() {
       )
     }
 
+    AsyncFunction(REQUEST_INTEGRITY_TOKEN_METHOD_NAME) { nonce: String, promise: Promise ->
+      val integrityManager: IntegrityManager =
+        IntegrityManagerFactory.create(appContext.reactContext?.applicationContext)
+      integrityManager.requestIntegrityToken(
+        IntegrityTokenRequest.builder()
+          .setNonce(nonce)
+          .build()
+      ).addOnSuccessListener { response: IntegrityTokenResponse ->
+        promise.resolve(response.token())
+      }.addOnFailureListener { exception: Exception ->
+        promise.reject(handleClassicIntegrityError(exception))
+      }.addOnCanceledListener {
+        promise.reject(
+          IntegrityException(IntegrityErrorCodes.CANCELLED, "Request cancelled")
+        )
+      }
+    }
+
     AsyncFunction("isHardwareAttestationSupportedAsync") {
       try {
         isHardwareAttestationSupported()
@@ -158,6 +182,49 @@ class IntegrityModule : Module() {
       StandardIntegrityErrorCode.PLAY_STORE_VERSION_OUTDATED -> IntegrityErrorCodes.PLAY_STORE_OUTDATED
       StandardIntegrityErrorCode.REQUEST_HASH_TOO_LONG -> IntegrityErrorCodes.REQUEST_HASH_TOO_LONG
       StandardIntegrityErrorCode.TOO_MANY_REQUESTS -> IntegrityErrorCodes.TOO_MANY_REQUESTS
+      else -> IntegrityErrorCodes.UNKNOWN
+    }
+  }
+
+  private fun handleClassicIntegrityError(exception: Throwable?): IntegrityException {
+    return when (exception) {
+      is IntegrityServiceException -> {
+        val errorCode = mapClassicIntegrityErrorCode(exception.errorCode)
+        IntegrityException(
+          errorCode,
+          exception.message ?: "Unknown classic integrity error",
+          exception
+        )
+      }
+      else -> IntegrityException(
+        IntegrityErrorCodes.UNKNOWN,
+        exception?.message ?: "Unknown error",
+        exception
+      )
+    }
+  }
+
+  // https://developer.android.com/google/play/integrity/reference/com/google/android/play/core/integrity/model/IntegrityErrorCode
+  private fun mapClassicIntegrityErrorCode(errorCode: Int): String {
+    return when (errorCode) {
+      IntegrityErrorCode.API_NOT_AVAILABLE -> IntegrityErrorCodes.API_NOT_AVAILABLE
+      IntegrityErrorCode.APP_NOT_INSTALLED -> IntegrityErrorCodes.APP_NOT_INSTALLED
+      IntegrityErrorCode.APP_UID_MISMATCH -> IntegrityErrorCodes.APP_UID_MISMATCH
+      IntegrityErrorCode.CANNOT_BIND_TO_SERVICE -> IntegrityErrorCodes.CANNOT_BIND_SERVICE
+      IntegrityErrorCode.CLIENT_TRANSIENT_ERROR -> IntegrityErrorCodes.CLIENT_TRANSIENT_ERROR
+      IntegrityErrorCode.CLOUD_PROJECT_NUMBER_IS_INVALID -> IntegrityErrorCodes.INVALID_PROJECT_NUMBER
+      IntegrityErrorCode.GOOGLE_SERVER_UNAVAILABLE -> IntegrityErrorCodes.GOOGLE_SERVER_UNAVAILABLE
+      IntegrityErrorCode.INTERNAL_ERROR -> IntegrityErrorCodes.INTERNAL_ERROR
+      IntegrityErrorCode.NETWORK_ERROR -> IntegrityErrorCodes.NETWORK_ERROR
+      IntegrityErrorCode.NO_ERROR -> IntegrityErrorCodes.NO_ERROR
+      IntegrityErrorCode.NONCE_IS_NOT_BASE64 -> IntegrityErrorCodes.NONCE_IS_NOT_BASE64
+      IntegrityErrorCode.NONCE_TOO_LONG -> IntegrityErrorCodes.NONCE_TOO_LONG
+      IntegrityErrorCode.NONCE_TOO_SHORT -> IntegrityErrorCodes.NONCE_TOO_SHORT
+      IntegrityErrorCode.PLAY_SERVICES_NOT_FOUND -> IntegrityErrorCodes.PLAY_SERVICES_NOT_FOUND
+      IntegrityErrorCode.PLAY_SERVICES_VERSION_OUTDATED -> IntegrityErrorCodes.PLAY_SERVICES_OUTDATED
+      IntegrityErrorCode.PLAY_STORE_NOT_FOUND -> IntegrityErrorCodes.PLAY_STORE_NOT_FOUND
+      IntegrityErrorCode.PLAY_STORE_VERSION_OUTDATED -> IntegrityErrorCodes.PLAY_STORE_OUTDATED
+      IntegrityErrorCode.TOO_MANY_REQUESTS -> IntegrityErrorCodes.TOO_MANY_REQUESTS
       else -> IntegrityErrorCodes.UNKNOWN
     }
   }

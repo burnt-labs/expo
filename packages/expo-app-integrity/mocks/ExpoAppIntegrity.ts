@@ -21,6 +21,10 @@ export async function requestIntegrityCheckAsync(challenge: string): Promise<str
   return '';
 }
 
+export async function requestIntegrityTokenAsync(nonce: string): Promise<string> {
+  return 'mock-classic-integrity-token';
+}
+
 export async function prepareIntegrityTokenProviderAsync(
   cloudProjectNumber: string
 ): Promise<void> {}

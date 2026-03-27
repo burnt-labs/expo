@@ -31,6 +31,13 @@ describe('Native', () => {
     expect(ExpoAppIntegrity.requestIntegrityCheckAsync).toHaveBeenLastCalledWith(challenge);
   });
 
+  it(`invokes requestIntegrityTokenAsync native method correctly`, async () => {
+    const nonce = 'test-nonce-base64';
+    const token = await ExpoAppIntegrity.requestIntegrityTokenAsync(nonce);
+    expect(typeof token).toBe('string');
+    expect(ExpoAppIntegrity.requestIntegrityTokenAsync).toHaveBeenLastCalledWith(nonce);
+  });
+
   it(`invokes prepareIntegrityTokenProviderAsync native method correctly`, async () => {
     const cloudProjectNumber = '1234567890';
     const value = await ExpoAppIntegrity.prepareIntegrityTokenProviderAsync(cloudProjectNumber);

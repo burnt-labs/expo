@@ -63,6 +63,20 @@ export async function prepareIntegrityTokenProviderAsync(cloudProjectNumber: str
 }
 
 /**
+ * Requests an integrity token using the Play Integrity Classic API.
+ * Unlike the Standard API, this does not require preparing a provider first.
+ * @param nonce A base64-encoded nonce provided by your server.
+ * @return A Promise that is fulfilled with a string containing the integrity token.
+ * @platform android
+ */
+export async function requestIntegrityTokenAsync(nonce: string) {
+  if (Platform.OS !== 'android') {
+    throw new Error('requestIntegrityToken is only available on Android');
+  }
+  return ExpoAppIntegrity.requestIntegrityTokenAsync(nonce);
+}
+
+/**
  * Requests an integrity verdict for the given request hash from Google Play.
  * @param requestHash A string representing the request hash.
  * @return A Promise that is fulfilled with a string that contains the integrity check result.
